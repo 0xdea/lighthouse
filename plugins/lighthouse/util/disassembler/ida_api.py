@@ -13,6 +13,11 @@ if int(idaapi.get_kernel_version()[0]) < 7:
     idaapi.warning("Lighthouse has deprecated support for IDA 6, please upgrade.")
     raise ImportError
 
+# IDA 9.2 SDK fix: migrate from PyQt5 to PySide6
+# https://docs.hex-rays.com/user-guide/plugins/migrating-pyqt5-code-to-pyside6
+ver_major, ver_minor = map(int, idaapi.get_kernel_version().split("."))
+USING_NEW_IDA = ver_major == 9 and ver_minor >= 2
+
 from .api import DisassemblerCoreAPI, DisassemblerContextAPI
 from ..qt import *
 from ..misc import is_mainthread, get_string_between
@@ -150,14 +155,19 @@ class IDACoreAPI(DisassemblerCoreAPI):
         self._dockable_factory[dockable_name] = create_widget_callback
 
     def create_dockable_widget(self, parent, dockable_name):
-        import sip
-
         # create a dockable widget, and save a reference to it for later use
         twidget = idaapi.create_empty_widget(dockable_name)
         self._dockable_widgets[dockable_name] = twidget
 
         # cast the IDA 'twidget' as a Qt widget for use
-        widget = sip.wrapinstance(int(twidget), QtWidgets.QWidget)
+        if USING_NEW_IDA:
+            from PySide6 import QtWidgets
+            from shiboken6 import wrapInstance
+            widget = wrapInstance(int(twidget), QtWidgets.QWidget)
+        else:
+            import sip
+            widget = sip.wrapinstance(int(twidget), QtWidgets.QWidget)
+
         widget.name = dockable_name
         widget.visible = False
 
@@ -296,8 +306,14 @@ class IDACoreAPI(DisassemblerCoreAPI):
         self._touch_ida_window(twidget)
 
         # locate the Qt Widget for a form and take 1px image slice of it
-        import sip
-        widget = sip.wrapinstance(int(twidget), QtWidgets.QWidget)
+        if USING_NEW_IDA:
+            from PySide6 import QtCore, QtGui, QtWidgets
+            from shiboken6 import wrapInstance
+            widget = wrapInstance(int(twidget), QtWidgets.QWidget)
+        else:
+            import sip
+            widget = sip.wrapinstance(int(twidget), QtWidgets.QWidget)
+
         pixmap = widget.grab(QtCore.QRect(0, 10, widget.width(), 1))
 
         # convert the raw pixmap into an image (easier to interface with)

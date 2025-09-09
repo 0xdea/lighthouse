@@ -29,9 +29,12 @@ USING_PYSIDE6 = False
 #    specific dependencies in here...
 #
 
+# IDA 9.2 SDK fix: migrate from PyQt5 to PySide6
+# https://docs.hex-rays.com/user-guide/plugins/migrating-pyqt5-code-to-pyside6
 try:
     import idaapi
-    USING_NEW_IDA = int(idaapi.get_kernel_version()[0]) >= 9
+    ver_major, ver_minor = map(int, idaapi.get_kernel_version().split("."))
+    USING_NEW_IDA = ver_major == 9 and ver_minor >= 2
     USING_OLD_IDA = not(USING_NEW_IDA)
 except ImportError:
     USING_NEW_IDA = False
