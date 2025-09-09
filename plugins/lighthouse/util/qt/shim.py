@@ -30,10 +30,12 @@ USING_PYSIDE6 = False
 #
 
 try:
-    import ida_idaapi
-    USING_IDA = True
+    import idaapi
+    USING_NEW_IDA = int(idaapi.get_kernel_version()[0]) >= 9
+    USING_OLD_IDA = not(USING_NEW_IDA)
 except ImportError:
-    USING_IDA = False
+    USING_NEW_IDA = False
+    USING_OLD_IDA = False
 
 try:
     import binaryninjaui
@@ -47,8 +49,8 @@ except ImportError:
 # PyQt5 Compatibility
 #------------------------------------------------------------------------------
 
-# attempt to load PyQt5 (IDA 7.0+)
-if USING_IDA:
+# attempt to load PyQt5 (IDA from 7.0 to 9.1)
+if USING_OLD_IDA:
 
     try:
         import PyQt5.QtGui as QtGui
@@ -91,8 +93,8 @@ if not QT_AVAILABLE and USING_OLD_BINJA:
 # PySide6 Compatibility
 #------------------------------------------------------------------------------
 
-# If all else fails, try to load PySide6 (New Binary Ninja)
-if not QT_AVAILABLE and USING_NEW_BINJA:
+# If all else fails, try to load PySide6 (New Binary Ninja and IDA)
+if not QT_AVAILABLE and (USING_NEW_BINJA or USING_NEW_IDA):
 
     try:
         import PySide6.QtGui as QtGui
